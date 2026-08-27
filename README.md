@@ -5,7 +5,9 @@
 
 ## @thingmate/scad
 
-Typescript to openscad
+Typescript to openscad.
+
+- [openscad cheatsheet](https://openscad.org/cheatsheet/)
 
 ## 📦 Installation
 
@@ -17,4 +19,4 @@ npm install @thingmate/scad --save
 
 ## 📜 Documentation
 
-TODO
+

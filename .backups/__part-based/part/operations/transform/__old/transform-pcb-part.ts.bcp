@@ -1,0 +1,42 @@
+import { mat4 } from 'gl-matrix';
+import { throwUnsupportedPCBPart } from '../../../../shared/throw-unsupported-pcb-part';
+import { isPCBCopper } from '../../../individual/copper/is-pcb-copper';
+import { transformPCBCopper } from '../../../individual/copper/operations/transform/transform-pcb-copper';
+import { isPCBHole } from '../../../individual/hole/is-pcb-hole';
+import { transformPCBHole } from '../../../individual/hole/operations/transform/transform-pcb-hole';
+import { IPCBPart } from '../../../individual/pcb-part.type';
+import { isPCBSilkscreen } from '../../../individual/silkscreen/is-pcb-silkscreen';
+import { transformPCBSilkscreen } from '../../../individual/silkscreen/operations/transform/transform-pcb-silkscreen';
+import { isPCBSolderMask } from '../../../individual/solder-mask/is-pcb-solder-mask';
+import { transformPCBSolderMask } from '../../../individual/solder-mask/operations/transform/transform-pcb-solder-mask';
+import { isPCBSolderPaste } from '../../../individual/solder-paste/is-pcb-solder-paste';
+import { transformPCBSolderPaste } from '../../../individual/solder-paste/operations/transform/transform-pcb-solder-paste';
+
+export function transformPCBPart<GPCBPart extends IPCBPart>(
+  part: GPCBPart,
+  matrix: mat4,
+): GPCBPart {
+  if (isPCBCopper(part)) {
+    return transformPCBCopper(part, matrix) as GPCBPart;
+  } else if (isPCBSolderMask(part)) {
+    return transformPCBSolderMask(part, matrix) as GPCBPart;
+  } else if (isPCBSolderPaste(part)) {
+    return transformPCBSolderPaste(part, matrix) as GPCBPart;
+  } else if (isPCBSilkscreen(part)) {
+    return transformPCBSilkscreen(part, matrix) as GPCBPart;
+  } else if (isPCBHole(part)) {
+    return transformPCBHole(part, matrix) as GPCBPart;
+  } else {
+    throwUnsupportedPCBPart(part);
+  }
+}
+
+export function transformPCBParts(
+  parts: IPCBPart[],
+  matrix: mat4,
+): IPCBPart[] {
+  return parts.map((part: IPCBPart): IPCBPart => {
+    return transformPCBPart(part, matrix);
+  });
+}
+

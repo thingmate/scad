@@ -29,11 +29,14 @@
     "fb:test:coverage": "vitest run --coverage",
     "fb:bench": "vitest bench",
     "=== FB: DOC ===": "",
-    "fb:typedoc": "typedoc --options typedoc.json --tsconfig tsconfig.json"
+    "fb:typedoc": "typedoc --options typedoc.json --tsconfig tsconfig.json",
+    "=== CUSTOM ===": "",
+    "debug": "node --watch src/.debug.private/main.ts"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "@vitest/coverage-istanbul": "^4.1.10",
+    "domgeom": "^1.1.0",
     "fabrique": "2.0.12",
     "prettier": "^3.9.6",
     "prettier-plugin-organize-imports": "^4.3.0",

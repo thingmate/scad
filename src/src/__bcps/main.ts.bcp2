@@ -1,0 +1,214 @@
+import { dedent } from '../misc/string/dedent/dedent.ts';
+import { serializeNumber } from '../ast/nodes/base/number/serialize/serialize-number.ts';
+import type { Rgba } from '../ast/nodes/base/color/rgba.ts';
+
+export abstract class Item {
+  readonly name: string;
+
+  constructor(name: string) {
+    this.name = name;
+  }
+
+  abstract translate(x?: number, y?: number, z?: number): this;
+
+  abstract scale(
+    scaleX?: number,
+    scaleY?: number,
+    scaleZ?: number,
+    originX?: number,
+    originY?: number,
+    originZ?: number,
+  ): this;
+
+  abstract rotateAround(x?: number, y?: number, z?: number, angle?: number): this;
+
+  abstract toOpenScad(): string;
+}
+
+export interface AtomicItemInit {
+  readonly name: string;
+  readonly material: Material;
+  readonly shapes: Iterable<Shape3d>;
+}
+
+export class AtomicItem extends Item {
+  readonly #material: Material;
+  readonly #shapes: readonly Shape3d[];
+  readonly #matrix: DOMMatrix;
+
+  // constructor(name: string, material: Material, shapes: Iterable<Shape3d>) {
+  //   super(name);
+  //   this.#material = material;
+  //   this.#shapes = Object.freeze(Array.from(shapes));
+  //   this.#matrix = new DOMMatrix();
+  // }
+
+  constructor({ name, material, shapes }: AtomicItemInit) {
+    super(name);
+    this.#material = material;
+    this.#shapes = Object.freeze(Array.from(shapes));
+    this.#matrix = new DOMMatrix();
+  }
+
+  get material(): Material {
+    return this.#material;
+  }
+
+  get shapes(): readonly Shape3d[] {
+    return this.#shapes;
+  }
+
+  get matrix(): DOMMatrixReadOnly {
+    return this.#matrix;
+  }
+
+  override translate(x?: number, y?: number, z?: number): this {
+    this.#matrix.translateSelf(x, y, z);
+    return this;
+  }
+
+  override scale(
+    scaleX?: number,
+    scaleY?: number,
+    scaleZ?: number,
+    originX?: number,
+    originY?: number,
+    originZ?: number,
+  ): this {
+    this.#matrix.scale(scaleX, scaleY, scaleZ, originX, originY, originZ);
+    return this;
+  }
+
+  override rotateAround(x?: number, y?: number, z?: number, angle?: number): this {
+    this.#matrix.rotateAxisAngleSelf(x, y, z, angle);
+    return this;
+  }
+
+  // clone(): AtomicItem {
+  //   return new AtomicItem(this.name);
+  // }
+
+  override toOpenScad(): string {
+    return dedent`
+      // ${this.name}
+      color(c = [${serializeNumber(this.material.color[0])}, ${serializeNumber(this.material.color[1])}, ${serializeNumber(this.material.color[2])}, ${serializeNumber(this.material.color[3])}]) {
+        multmatrix(m = [
+          [${serializeNumber(this.#matrix.m11)}, ${serializeNumber(this.#matrix.m21)}, ${serializeNumber(this.#matrix.m31)}, ${serializeNumber(this.#matrix.m41)}],
+          [${serializeNumber(this.#matrix.m12)}, ${serializeNumber(this.#matrix.m22)}, ${serializeNumber(this.#matrix.m32)}, ${serializeNumber(this.#matrix.m42)}],
+          [${serializeNumber(this.#matrix.m13)}, ${serializeNumber(this.#matrix.m23)}, ${serializeNumber(this.#matrix.m33)}, ${serializeNumber(this.#matrix.m43)}],
+          [${serializeNumber(this.#matrix.m14)}, ${serializeNumber(this.#matrix.m24)}, ${serializeNumber(this.#matrix.m34)}, ${serializeNumber(this.#matrix.m44)}],
+        ]) {
+          ${this.shapes.map((shape: Shape3d): string => shape.toOpenScad()).join('\n')}
+        }
+      }
+    `;
+  }
+}
+
+export class CompositeItem extends Item {
+  readonly children: Item[];
+
+  constructor(name: string, children: Iterable<Item>) {
+    super(name);
+    this.children = Array.from(children);
+  }
+
+  add(...children: Item[]): this {
+    this.children.push(...children);
+    return this;
+  }
+
+  override translate(x?: number, y?: number, z?: number): this {
+    for (const child of this.children) {
+      child.translate(x, y, z);
+    }
+    return this;
+  }
+
+  override scale(
+    scaleX?: number,
+    scaleY?: number,
+    scaleZ?: number,
+    originX?: number,
+    originY?: number,
+    originZ?: number,
+  ): this {
+    for (const child of this.children) {
+      child.scale(scaleX, scaleY, scaleZ, originX, originY, originZ);
+    }
+    return this;
+  }
+
+  override rotateAround(x?: number, y?: number, z?: number, angle?: number): this {
+    for (const child of this.children) {
+      child.rotateAround(x, y, z, angle);
+    }
+    return this;
+  }
+
+  override toOpenScad(): string {
+    let output = '';
+    for (const child of this.children) {
+      if (output !== '') {
+        output += '\n';
+      }
+      output += child.toOpenScad();
+    }
+
+    return output;
+  }
+
+  *atomics(): Generator<AtomicItem> {
+    for (const child of this.children) {
+      if (child instanceof AtomicItem) {
+        yield child;
+      } else if (child instanceof CompositeItem) {
+        yield* child.atomics();
+      }
+    }
+  }
+}
+
+export interface MaterialInit {
+  readonly name: string;
+  readonly color: Rgba;
+  readonly shopUrl?: string;
+  readonly price?: number;
+}
+
+export class Material {
+  readonly name: string;
+  readonly color: Rgba;
+  readonly shopUrl: string | undefined;
+  readonly price: number | undefined;
+
+  constructor({ name, color, shopUrl, price }: MaterialInit) {
+    this.name = name;
+    this.color = color;
+    this.shopUrl = shopUrl;
+    this.price = price;
+  }
+}
+
+export abstract class Shape3d {
+  abstract toOpenScad(): string;
+}
+
+export class Cube extends Shape3d {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+
+  constructor(x: number, y: number, z: number) {
+    super();
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+
+  override toOpenScad(): string {
+    return dedent`
+      cube(size = [${serializeNumber(this.x)}, ${serializeNumber(this.y)}, ${serializeNumber(this.z)}], center = true);
+    `;
+  }
+}

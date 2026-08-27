@@ -1,0 +1,16 @@
+import { mat4, vec3 } from 'gl-matrix';
+import { IPCBPart } from '../../../individual/pcb-part.type';
+import { transformPCBParts } from './transform-pcb-part';
+
+export function placePCBParts(
+  parts: IPCBPart[],
+  x: number,
+  y: number,
+  angle: number,
+): IPCBPart[] {
+  const translationMatrix: mat4 = mat4.fromTranslation(mat4.create(), vec3.fromValues(x, y, 0));
+  const rotationMatrix: mat4 = mat4.fromZRotation(mat4.create(), angle);
+  const matrix: mat4 = mat4.multiply(mat4.create(), translationMatrix, rotationMatrix);
+  return transformPCBParts(parts, matrix);
+  // return transformPCBParts(parts, mat4.fromRotationTranslation(mat4.create(), quat.fromEuler(quat.create(), 0, 0, Math.PI / 2), vec3.fromValues(x, y, 0)));
+}

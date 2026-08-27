@@ -1,0 +1,78 @@
+import { vec2 } from 'gl-matrix';
+import { NULL_VEC2 } from '../../../../misc/math/null-vec2';
+import { IPCBPart } from '../../individual/pcb-part.type';
+import { mirrorPCBPart } from './mirror-pcb-part';
+import { rotatePCBPart } from './rotate-pcb-part';
+import { scalePCBPart } from './scale-pcb-part';
+import { translatePCBPart } from './translate-pcb-part';
+
+/**
+ * EXPERIMENTAL
+ */
+
+export interface IPlacePCBPartOptions {
+  translation?: vec2;
+  rotation?: number;
+  scaling?: number;
+  mirror?: boolean;
+}
+
+export function placePCBPart<GPCBPart extends IPCBPart>(
+  part: GPCBPart,
+  {
+    translation,
+    rotation,
+    scaling,
+    mirror,
+  }: IPlacePCBPartOptions,
+): GPCBPart {
+  if (rotation !== void 0) {
+    rotatePCBPart(part, rotation, NULL_VEC2);
+  }
+
+  if (mirror) {
+    mirrorPCBPart(part);
+  }
+
+  if (scaling !== void 0) {
+    scalePCBPart(part, scaling);
+  }
+
+  if (translation !== void 0) {
+    translatePCBPart(part, translation);
+  }
+
+  return part;
+}
+
+export function placePCBParts(
+  parts: IPCBPart[],
+  options: IPlacePCBPartOptions,
+): IPCBPart[] {
+  for (let i = 0, l = parts.length; i < l; i++) {
+    placePCBPart(parts[i], options);
+  }
+  return parts;
+}
+
+/*----------------*/
+
+export function placePCBPart$<GPCBPart extends IPCBPart>(
+  part: GPCBPart,
+  translation?: vec2,
+  rotation?: number,
+  scaling?: number,
+  mirror?: boolean,
+): GPCBPart {
+  return placePCBPart<GPCBPart>(part, { translation, rotation, scaling, mirror });
+}
+
+export function placePCBParts$(
+  parts: IPCBPart[],
+  translation?: vec2,
+  rotation?: number,
+  scaling?: number,
+  mirror?: boolean,
+): IPCBPart[] {
+  return placePCBParts(parts, { translation, rotation, scaling, mirror });
+}

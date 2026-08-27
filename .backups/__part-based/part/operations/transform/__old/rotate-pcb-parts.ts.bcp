@@ -1,0 +1,10 @@
+import { IPCBPart } from '../../../individual/pcb-part.type';
+import { placePCBParts } from './place-pcb-parts';
+
+export function rotatePCBParts(
+  parts: IPCBPart[],
+  angle: number,
+): IPCBPart[] {
+  return placePCBParts(parts, 0, 0, angle);
+}
+

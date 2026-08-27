@@ -664,6 +664,7 @@ __metadata:
   dependencies:
     "@types/node": "npm:^26.1.2"
     "@vitest/coverage-istanbul": "npm:^4.1.10"
+    domgeom: "npm:^1.1.0"
     fabrique: "npm:2.0.12"
     prettier: "npm:^3.9.6"
     prettier-plugin-organize-imports: "npm:^4.3.0"
@@ -1097,6 +1098,13 @@ __metadata:
   version: 2.1.2
   resolution: "detect-libc@npm:2.1.2"
   checksum: 10c0/acc675c29a5649fa1fb6e255f993b8ee829e510b6b56b0910666949c80c364738833417d0edb5f90e4e46be17228b0f2b66a010513984e18b15deeeac49369c4
+  languageName: node
+  linkType: hard
+
+"domgeom@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "domgeom@npm:1.1.0"
+  checksum: 10c0/539bf48809a20c476a26e8c21a01c8cfcf9c06c93c90ef4dbceeaf65cbb9b7b9154c85d4a43886be8283e035590b0a90ca410a9d6204359a383d07ff2c3575a3
   languageName: node
   linkType: hard
 

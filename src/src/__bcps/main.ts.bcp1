@@ -1,0 +1,80 @@
+import { dedent } from '../misc/string/dedent/dedent.ts';
+import { serializeNumber } from '../ast/nodes/base/number/serialize/serialize-number.ts';
+import type { Rgba } from '../ast/nodes/base/color/rgba.ts';
+
+export abstract class SceneObject {}
+
+export interface Object3DInit {
+  readonly matrix?: DOMMatrixReadOnly;
+}
+
+export class Object3D extends SceneObject {
+  readonly matrix: DOMMatrixReadOnly;
+
+  constructor({ matrix = new DOMMatrix() }: Object3DInit) {
+    super();
+    this.matrix = matrix;
+  }
+
+  translate(x?: number, y?: number, z?: number): Object3D {
+    return new Object3D({
+      matrix: this.matrix.translate(x, y, z),
+    });
+  }
+
+  scale(
+    scaleX?: number,
+    scaleY?: number,
+    scaleZ?: number,
+    originX?: number,
+    originY?: number,
+    originZ?: number,
+  ): Object3D {
+    return new Object3D(this.matrix.scale(scaleX, scaleY, scaleZ, originX, originY, originZ));
+  }
+
+  toOpenScad(content: string): string {
+    return dedent`
+      multmatrix(m = [
+        [${serializeNumber(this.matrix.m11)}, ${serializeNumber(this.matrix.m21)}, ${serializeNumber(this.matrix.m31)}, ${serializeNumber(this.matrix.m41)}],
+        [${serializeNumber(this.matrix.m12)}, ${serializeNumber(this.matrix.m22)}, ${serializeNumber(this.matrix.m32)}, ${serializeNumber(this.matrix.m42)}],
+        [${serializeNumber(this.matrix.m13)}, ${serializeNumber(this.matrix.m23)}, ${serializeNumber(this.matrix.m33)}, ${serializeNumber(this.matrix.m43)}],
+        [${serializeNumber(this.matrix.m14)}, ${serializeNumber(this.matrix.m24)}, ${serializeNumber(this.matrix.m34)}, ${serializeNumber(this.matrix.m44)}],
+
+      ]) {
+        ${content}
+      }
+    `;
+  }
+}
+
+export class Material {
+  readonly color: Rgba;
+
+  constructor(color: Rgba) {
+    this.color = color;
+  }
+}
+
+export class Cube extends Object3D {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+
+  constructor(x: number, y: number, z: number, matrix?: DOMMatrixReadOnly) {
+    super(matrix);
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
+
+  override toOpenScad(): string {
+    return super.toOpenScad(
+      dedent`
+        cube(size = [${serializeNumber(this.x)}, ${serializeNumber(this.y)}, ${serializeNumber(this.z)}], center = true)
+      `,
+    );
+  }
+}
+
+export class Group extends Object3D {}
