@@ -11,6 +11,7 @@ import { polyfill } from './polyfill.ts';
 import { hex } from '../ast/nodes/base/color/rgba.ts';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { serializeOpenScadNode } from '../ast/operations/serialize/serialize-open-scad-node.ts';
+import { mainTrait } from '../abc-def.ts';
 
 polyfill();
 
@@ -65,7 +66,8 @@ async function main_01() {
 
 async function main() {
   // await main_00();
-  await main_01();
+  // await main_01();
+  mainTrait();
 }
 
 await main();
