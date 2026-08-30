@@ -1,0 +1,22 @@
+export interface Typed<GType extends symbol = any> {
+  readonly $type: GType;
+}
+
+/*--*/
+
+export type Implementations<GFunction extends (...args: any[]) => any> = GFunction extends (
+  self: infer GSelf,
+  ...args: any[]
+) => any
+  ? GSelf extends Typed
+    ? Record<GSelf['$type'], GFunction>
+    : never
+  : never;
+
+export function overload<GFunction extends (...args: any[]) => any>(
+  implementations: Implementations<GFunction>,
+): GFunction {
+  return ((self: Typed, ...args: any[]): any => {
+    return implementations[self.$type](self, ...args);
+  }) as GFunction;
+}

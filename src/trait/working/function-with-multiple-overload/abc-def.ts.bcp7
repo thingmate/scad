@@ -1,22 +1,6 @@
-import { overload, trait, typed, type Typed } from './trait/trait.ts';
+import { overload, typed, type Typed } from './trait/trait.ts';
 import { dedent } from './misc/string/dedent/dedent.ts';
 import type { Rgba } from './ast/nodes/base/color/rgba.ts';
-
-/*---------*/
-
-export interface Translate {
-  <GSelf extends Typed>(self: GSelf, x: number, y?: number, z?: number): GSelf;
-}
-
-export const translate = trait<Translate>();
-
-/*--*/
-
-export interface Difference {
-  <GSelf extends Typed>(self: GSelf, ...shapes: GSelf[]): GSelf;
-}
-
-export const difference = trait<Difference>();
 
 /*---------*/
 
@@ -28,20 +12,17 @@ export interface Vec3 extends Typed<typeof VEC3> {
   readonly z: number;
 }
 
-export function vec3(x: number, y: number, z: number): Vec3 {
-  return {
-    $type: VEC3,
-    x,
-    y,
-    z,
-  };
-}
-// TODO continue here
-export function implement_vec3_translate(): void {
-  translate.implement(VEC3, (self: Vec3, x: number, y: number = 0, z: number = 0): Vec3 => {
-    return vec3(self.x + x, self.y + y, self.z + z);
-  });
-}
+export const vec3 = typed<Vec3>(VEC3);
+
+export const vec3_translate = vec3.implementation(
+  (self: Vec3, x: number, y: number = 0, z: number = 0): Vec3 => {
+    return vec3.create({
+      x: self.x + x,
+      y: self.y + y,
+      z: self.z + z,
+    });
+  },
+);
 
 /*---------*/
 
@@ -51,47 +32,38 @@ export interface OpenscadCode extends Typed<typeof OPENSCAD_CODE> {
   readonly code: string;
 }
 
-export function openscadCode(code: string): OpenscadCode {
-  return {
-    $type: OPENSCAD_CODE,
-    code,
-  };
-}
+export const openscadCode = typed<OpenscadCode>(OPENSCAD_CODE);
 
 export function cube(x: number, y: number, z: number): OpenscadCode {
-  return openscadCode(`cube(size = [${x}, ${y}, ${z}], center = true);`);
+  return openscadCode.create({
+    code: `cube(size = [${x}, ${y}, ${z}], center = true);`,
+  });
 }
 
-export function implement_openscadCode_translate(): void {
-  translate.implement(
-    OPENSCAD_CODE,
-    (self: OpenscadCode, x: number, y: number = 0, z: number = 0): OpenscadCode => {
-      return openscadCode(
-        dedent`
-          translate([${String(x)}, ${String(y)}, ${String(z)}]) {
-            ${self.code}
-          }
-        `,
-      );
-    },
-  );
-}
+export const openscadCode_translate = openscadCode.implementation(
+  (self: OpenscadCode, x: number, y: number = 0, z: number = 0): OpenscadCode => {
+    return openscadCode.create({
+      code: dedent`
+        translate([${String(x)}, ${String(y)}, ${String(z)}]) {
+          ${self.code}
+        }
+      `,
+    });
+  },
+);
 
-export function implement_openscadCode_difference(): void {
-  difference.implement(
-    OPENSCAD_CODE,
-    (self: OpenscadCode, ...shapes: OpenscadCode[]): OpenscadCode => {
-      return openscadCode(
-        dedent`
+export const openscadCode_difference = openscadCode.implementation(
+  (self: OpenscadCode, ...shapes: OpenscadCode[]): OpenscadCode => {
+    return openscadCode.create({
+      code: dedent`
         difference() {
           ${self.code}
           ${shapes.map((shape: OpenscadCode): string => shape.code).join('\n')}
         }
       `,
-      );
-    },
-  );
-}
+    });
+  },
+);
 
 export const openscadCode_applyColor = openscadCode.implementation(
   (self: OpenscadCode, [r, g, b, a = 1]: Rgba): OpenscadCode => {
@@ -140,11 +112,11 @@ export const bomPart_translate = bomPart.implementation((self: BomPart): BomPart
 
 /*---------*/
 
-// export const translate = overload([vec3_translate, openscadCode_translate, bomPart_translate]);
-//
-// export const difference = overload([openscadCode_difference]);
-//
-// export const applyColor = overload([openscadCode_applyColor]);
+export const translate = overload([vec3_translate, openscadCode_translate, bomPart_translate]);
+
+export const difference = overload([openscadCode_difference]);
+
+export const applyColor = overload([openscadCode_applyColor]);
 
 /*---------*/
 
@@ -197,11 +169,6 @@ export function window(width: number, height: number) {
 /*---------*/
 
 export function mainTrait() {
-  implement_vec3_translate();
-  implement_openscadCode_translate();
-
-  implement_openscadCode_difference();
-
   // const r = translate(vec3(1, 2, 3), 10);
   // console.log([vec3(1, 2, 3), vec3(11, 12, 13)].map(translate.curry(10)));
   // console.log(r);

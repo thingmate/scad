@@ -1,0 +1,64 @@
+export interface Typed<GType extends symbol = any> {
+  readonly $type: GType;
+}
+
+/*--*/
+
+// export type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (
+//   x: infer I,
+// ) => void
+//   ? I
+//   : never;
+
+/*--*/
+
+export interface TypedDefinition<GTyped extends Typed> {
+  create(properties: Omit<GTyped, '$type'>): GTyped;
+
+  implementation<GFunction extends (self: GTyped, ...args: any[]) => any>(
+    fnc: GFunction,
+  ): Implementation<GTyped['$type'], GFunction>;
+}
+
+export function typed<GTyped extends Typed>($type: GTyped['$type']): TypedDefinition<GTyped> {
+  return {
+    create(properties: Omit<GTyped, '$type'>): GTyped {
+      return { ...properties, $type } as GTyped;
+    },
+    implementation<GFunction extends (self: GTyped, ...args: any[]) => any>(
+      fnc: GFunction,
+    ): Implementation<GTyped['$type'], GFunction> {
+      return Object.assign(fnc, { $for: $type });
+    },
+  };
+}
+
+/*--*/
+
+export type Implementation<
+  GTyped extends Typed = any,
+  GFunction extends (self: GTyped, ...args: any[]) => any = any,
+> = GFunction & {
+  readonly $for: GTyped['$type'];
+};
+
+/*--*/
+
+export type OverloadResult<GImplementation extends Implementation> = (
+  GImplementation extends any ? (x: GImplementation) => void : never
+) extends (x: infer GResult) => void
+  ? GResult
+  : never;
+
+export function overload<GImplementation extends Implementation>(
+  implementations: Iterable<GImplementation>,
+): OverloadResult<GImplementation> {
+  const map: Map<symbol, Implementation> = new Map();
+
+  for (const implementation of implementations) {
+    map.set((implementation as Implementation).$for, implementation);
+  }
+  return ((self: Typed, ...args: any[]): any => {
+    return map.get(self.$type)!(self, ...args);
+  }) as any;
+}
