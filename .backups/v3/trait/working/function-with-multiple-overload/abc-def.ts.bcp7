@@ -1,0 +1,178 @@
+import { overload, typed, type Typed } from './trait/trait.ts';
+import { dedent } from './misc/string/dedent/dedent.ts';
+import type { Rgba } from './ast/nodes/base/color/rgba.ts';
+
+/*---------*/
+
+export const VEC3 = Symbol('VEC3');
+
+export interface Vec3 extends Typed<typeof VEC3> {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+export const vec3 = typed<Vec3>(VEC3);
+
+export const vec3_translate = vec3.implementation(
+  (self: Vec3, x: number, y: number = 0, z: number = 0): Vec3 => {
+    return vec3.create({
+      x: self.x + x,
+      y: self.y + y,
+      z: self.z + z,
+    });
+  },
+);
+
+/*---------*/
+
+export const OPENSCAD_CODE = Symbol('OPENSCAD_CODE');
+
+export interface OpenscadCode extends Typed<typeof OPENSCAD_CODE> {
+  readonly code: string;
+}
+
+export const openscadCode = typed<OpenscadCode>(OPENSCAD_CODE);
+
+export function cube(x: number, y: number, z: number): OpenscadCode {
+  return openscadCode.create({
+    code: `cube(size = [${x}, ${y}, ${z}], center = true);`,
+  });
+}
+
+export const openscadCode_translate = openscadCode.implementation(
+  (self: OpenscadCode, x: number, y: number = 0, z: number = 0): OpenscadCode => {
+    return openscadCode.create({
+      code: dedent`
+        translate([${String(x)}, ${String(y)}, ${String(z)}]) {
+          ${self.code}
+        }
+      `,
+    });
+  },
+);
+
+export const openscadCode_difference = openscadCode.implementation(
+  (self: OpenscadCode, ...shapes: OpenscadCode[]): OpenscadCode => {
+    return openscadCode.create({
+      code: dedent`
+        difference() {
+          ${self.code}
+          ${shapes.map((shape: OpenscadCode): string => shape.code).join('\n')}
+        }
+      `,
+    });
+  },
+);
+
+export const openscadCode_applyColor = openscadCode.implementation(
+  (self: OpenscadCode, [r, g, b, a = 1]: Rgba): OpenscadCode => {
+    return openscadCode.create({
+      code: dedent`
+         color([${String(r)}, ${String(g)}, ${String(b)}, ${String(a)}]) {}
+          ${self.code}
+        }
+      `,
+    });
+  },
+);
+
+/*---------*/
+
+export const BOM_PART = Symbol('BOM_PART');
+
+export interface BomPart extends Typed<typeof BOM_PART> {
+  readonly name: string;
+  readonly shopUrl: string | undefined;
+  readonly price: number | undefined;
+}
+
+export const bomPart = typed<BomPart>(BOM_PART);
+
+// export interface BomPartOptions {
+//   readonly name: string;
+//   readonly shopUrl?: string;
+//   readonly price?: number;
+// }
+//
+//
+//
+// export function bomPart({ name, shopUrl, price }: BomPartOptions): BomPart {
+//   return {
+//     $type: BOM_PART,
+//     name,
+//     shopUrl,
+//     price,
+//   };
+// }
+
+export const bomPart_translate = bomPart.implementation((self: BomPart): BomPart => {
+  return self;
+});
+
+/*---------*/
+
+export const translate = overload([vec3_translate, openscadCode_translate, bomPart_translate]);
+
+export const difference = overload([openscadCode_difference]);
+
+export const applyColor = overload([openscadCode_applyColor]);
+
+/*---------*/
+
+export function wood() {
+  return [
+    bomPart.create({
+      name: 'wood',
+      shopUrl: 'https://www.amazon.fr/gp/product/B000000000',
+      price: 100,
+    }),
+    translate(applyColor(cube(1, 2, 3), [1, 0, 0, 1]), 0, 1, 2),
+  ];
+}
+
+export function window(width: number, height: number) {
+  return [
+    bomPart.create({
+      name: `window_${width}x${height}`,
+      shopUrl: 'https://www.amazon.fr/gp/product/B000000000',
+      price: 100,
+    }),
+    applyColor(cube(1, 2, 3), [1, 0, 0, 1]),
+  ];
+}
+
+/*---------*/
+
+// type A = (input: string) => boolean;
+// type B = (input: number) => symbol;
+//
+// type C = A & B;
+//
+// const a: C = null as any;
+//
+// const t = a(1);
+
+/*--*/
+
+// translate(
+//   vec3.create({
+//     x: 1,
+//     y: 2,
+//     z: 3,
+//   }),
+//   0,
+//   1,
+//   2,
+// );
+
+/*---------*/
+
+export function mainTrait() {
+  // const r = translate(vec3(1, 2, 3), 10);
+  // console.log([vec3(1, 2, 3), vec3(11, 12, 13)].map(translate.curry(10)));
+  // console.log(r);
+
+  const c = wood();
+  console.log(c.map((_) => translate(_, 4, 5, 6)));
+}

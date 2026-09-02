@@ -1,7 +1,34 @@
 import { dedent } from '../misc/string/dedent/dedent.ts';
-import { serializeNumber } from '../ast/nodes/base/number/serialize/serialize-number.ts';
+import { numberToOpenScad } from '../ast/nodes/base/number/serialize/serialize-number.ts';
 import type { Rgba } from '../ast/nodes/base/color/rgba.ts';
 
+
+/*-----*/
+
+export function numberToOpenScad(input: number): string {
+  if (Number.isNaN(input)) {
+    return 'nan';
+  } else if (input === Number.POSITIVE_INFINITY) {
+    return 'inf';
+  } else if (input === -Number.POSITIVE_INFINITY) {
+    return '-inf';
+  } else {
+    return input.toString(10);
+  }
+}
+
+export function domMatrixToOpenScad(input: DOMMatrixReadOnly): string {
+  return dedent`
+    [
+      [${numberToOpenScad(input.m11)}, ${numberToOpenScad(input.m21)}, ${numberToOpenScad(input.m31)}, ${numberToOpenScad(input.m41)}],
+      [${numberToOpenScad(input.m12)}, ${numberToOpenScad(input.m22)}, ${numberToOpenScad(input.m32)}, ${numberToOpenScad(input.m42)}],
+      [${numberToOpenScad(input.m13)}, ${numberToOpenScad(input.m23)}, ${numberToOpenScad(input.m33)}, ${numberToOpenScad(input.m43)}],
+      [${numberToOpenScad(input.m14)}, ${numberToOpenScad(input.m24)}, ${numberToOpenScad(input.m34)}, ${numberToOpenScad(input.m44)}],
+    ]
+  `;
+}
+
+/*-----*/
 export abstract class Object3d {
   readonly name: string;
   readonly matrix: DOMMatrix;
@@ -37,10 +64,10 @@ export abstract class Object3d {
     return dedent`
       // ${this.name}
       multmatrix(m = [
-        [${serializeNumber(this.matrix.m11)}, ${serializeNumber(this.matrix.m21)}, ${serializeNumber(this.matrix.m31)}, ${serializeNumber(this.matrix.m41)}],
-        [${serializeNumber(this.matrix.m12)}, ${serializeNumber(this.matrix.m22)}, ${serializeNumber(this.matrix.m32)}, ${serializeNumber(this.matrix.m42)}],
-        [${serializeNumber(this.matrix.m13)}, ${serializeNumber(this.matrix.m23)}, ${serializeNumber(this.matrix.m33)}, ${serializeNumber(this.matrix.m43)}],
-        [${serializeNumber(this.matrix.m14)}, ${serializeNumber(this.matrix.m24)}, ${serializeNumber(this.matrix.m34)}, ${serializeNumber(this.matrix.m44)}],
+        [${numberToOpenScad(input.m11)}, ${numberToOpenScad(input.m21)}, ${numberToOpenScad(input.m31)}, ${numberToOpenScad(input.m41)}],
+        [${numberToOpenScad(input.m12)}, ${numberToOpenScad(input.m22)}, ${numberToOpenScad(input.m32)}, ${numberToOpenScad(input.m42)}],
+        [${numberToOpenScad(input.m13)}, ${numberToOpenScad(input.m23)}, ${numberToOpenScad(input.m33)}, ${numberToOpenScad(input.m43)}],
+        [${numberToOpenScad(input.m14)}, ${numberToOpenScad(input.m24)}, ${numberToOpenScad(input.m34)}, ${numberToOpenScad(input.m44)}],
       ]) {
         ${content}
       }
@@ -83,7 +110,7 @@ export class AtomicObject3d extends Object3d {
 
     return super.toOpenScad(
       dedent`
-        color(c = [${serializeNumber(this.material.color[0])}, ${serializeNumber(this.material.color[1])}, ${serializeNumber(this.material.color[2])}, ${serializeNumber(this.material.color[3] ?? 1)}]) {
+        color(c = [${numberToOpenScad(this.material.color[0])}, ${numberToOpenScad(this.material.color[1])}, ${numberToOpenScad(this.material.color[2])}, ${numberToOpenScad(this.material.color[3] ?? 1)}]) {
           ${allShapes}
         }
       `,
@@ -181,7 +208,7 @@ export class Cube extends Shape3d {
 
   override toOpenScad(): string {
     return dedent`
-      cube(size = [${serializeNumber(this.x)}, ${serializeNumber(this.y)}, ${serializeNumber(this.z)}], center = true);
+      cube(size = [${numberToOpenScad(this.x)}, ${numberToOpenScad(this.y)}, ${numberToOpenScad(this.z)}], center = true);
     `;
   }
 }

@@ -1,0 +1,212 @@
+import { trait, type Typed } from './trait/trait.ts';
+import { dedent } from './misc/string/dedent/dedent.ts';
+import type { Material } from './src/main.ts';
+import type { Rgba } from './ast/nodes/base/color/rgba.ts';
+
+/*---------*/
+
+export interface Translate {
+  (self: Vec3, x: number, y?: number, z?: number): Vec3;
+}
+
+export interface Translate {
+  (self: OpenscadCode, x: number, y?: number, z?: number): OpenscadCode;
+}
+
+const trans: Translate = null as any;
+
+trans(vec3(1, 2, 3), 10);
+trans(1, 10);
+
+/*---------*/
+
+export interface TranslateTrait {
+  <GSelf extends Typed>(self: GSelf, x: number, y?: number, z?: number): GSelf;
+}
+
+export const translate = trait<TranslateTrait>();
+
+/*--*/
+
+export interface DifferenceTrait {
+  <GSelf extends Typed>(self: GSelf, ...shapes: GSelf[]): GSelf;
+}
+
+export const difference = trait<DifferenceTrait>();
+
+/*--*/
+
+export interface ApplyColorTrait {
+  <GSelf extends Typed>(self: GSelf, color: Rgba): GSelf;
+}
+
+export const applyColor = trait<ApplyColorTrait>();
+
+/*---------*/
+
+export const VEC3 = Symbol('VEC3');
+
+export interface Vec3 extends Typed<typeof VEC3> {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+export function vec3(x: number, y: number, z: number): Vec3 {
+  return {
+    $type: VEC3,
+    x,
+    y,
+    z,
+  };
+}
+
+export function implementVec3Translate(): void {
+  return translate.implement<TranslateTrait<Vec3>>(
+    VEC3,
+    (self: Vec3, x: number, y: number = 0, z: number = 0): Vec3 => {
+      return vec3(self.x + x, self.y + y, self.z + z);
+    },
+  );
+}
+
+/*---------*/
+
+export const OPENSCAD_CODE = Symbol('OPENSCAD_CODE');
+
+export interface OpenscadCode extends Typed<typeof OPENSCAD_CODE> {
+  readonly code: string;
+}
+
+export function openscadCode(code: string): OpenscadCode {
+  return {
+    $type: OPENSCAD_CODE,
+    code,
+  };
+}
+
+export function cube(x: number, y: number, z: number): OpenscadCode {
+  return openscadCode(`cube(size = [${x}, ${y}, ${z}], center = true);`);
+}
+
+// export function color([r, g, b, a]: Rgba): OpenscadCode {
+//   return openscadCode(`color([${x}, ${y}, ${z}]);`);
+// }
+
+export function implementOpenscadCodeTranslate(): void {
+  return translate.implement<OpenscadCode>(
+    OPENSCAD_CODE,
+    <GSelf extends OpenscadCode>(self: GSelf, x: number, y: number = 0, z: number = 0): GSelf => {
+      return openscadCode(
+        dedent`
+          translate([${String(x)}, ${String(y)}, ${String(z)}]) {
+            ${self.code}
+          }
+        `,
+      );
+    },
+  );
+}
+
+export function implementOpenscadCodeDifference(): void {
+  return difference.implement(
+    OPENSCAD_CODE,
+    (self: OpenscadCode, ...shapes: OpenscadCode[]): OpenscadCode => {
+      return openscadCode(
+        dedent`
+          difference() {
+            ${self.code}
+            ${shapes.map((shape: OpenscadCode): string => shape.code).join('\n')}
+          }
+        `,
+      );
+    },
+  );
+}
+
+export function implementOpenscadCodeApplyColor(): void {
+  return applyColor.implement(
+    OPENSCAD_CODE,
+    (self: OpenscadCode, [r, g, b, a = 1]: Rgba): OpenscadCode => {
+      return openscadCode(
+        dedent`
+          color([${String(r)}, ${String(g)}, ${String(b)}, ${String(a)}]) {}
+            ${self.code}
+          }
+        `,
+      );
+    },
+  );
+}
+
+/*---------*/
+
+export const BOM_PART = Symbol('BOM_PART');
+
+export interface BomPart extends Typed<typeof BOM_PART> {
+  readonly name: string;
+  readonly shopUrl: string | undefined;
+  readonly price: number | undefined;
+}
+
+export interface BomPartOptions {
+  readonly name: string;
+  readonly shopUrl?: string;
+  readonly price?: number;
+}
+
+export function bomPart({ name, shopUrl, price }: BomPartOptions): BomPart {
+  return {
+    $type: BOM_PART,
+    name,
+    shopUrl,
+    price,
+  };
+}
+
+export function implementBomPartTranslate(): void {
+  return translate.implement<BomPart>(BOM_PART, (self: BomPart): BomPart => {
+    return self;
+  });
+}
+
+/*---------*/
+
+export function wood(): Typed[] {
+  return [
+    bomPart({
+      name: 'wood',
+      shopUrl: 'https://www.amazon.fr/gp/product/B000000000',
+      price: 100,
+    }),
+    applyColor(cube(1, 2, 3), [1, 0, 0, 1]),
+  ];
+}
+
+export function window(width: number, height: number): Typed[] {
+  return [
+    bomPart({
+      name: `window_${width}x${height}`,
+      shopUrl: 'https://www.amazon.fr/gp/product/B000000000',
+      price: 100,
+    }),
+    applyColor(cube(1, 2, 3), [1, 0, 0, 1]),
+  ];
+}
+
+/*---------*/
+
+export function mainTrait() {
+  implementVec3Translate();
+  implementOpenscadCodeTranslate();
+  implementBomPartTranslate();
+  implementOpenscadCodeDifference();
+  implementOpenscadCodeApplyColor();
+
+  // const r = translate(vec3(1, 2, 3), 10);
+  // console.log([vec3(1, 2, 3), vec3(11, 12, 13)].map(translate.curry(10)));
+  // console.log(r);
+
+  const c = wood();
+  console.log(c.map(translate.curry(4, 5, 6)));
+}

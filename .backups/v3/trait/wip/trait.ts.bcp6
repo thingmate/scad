@@ -1,0 +1,81 @@
+export type Typed<GType extends string, GProperties extends object> = GProperties & {
+  readonly $type: GType;
+};
+
+/*--*/
+
+export interface TypedDefinition<GType extends string, GProperties extends object> {
+  readonly $typed: Typed<GType, GProperties>;
+
+  create(properties: GProperties): Typed<GType, GProperties>;
+
+  implementation<GFunction extends (self: Typed<GType, GProperties>, ...args: any[]) => any>(
+    fnc: GFunction,
+  ): Implementation<GType, GFunction>;
+}
+
+export type PartialTyped<GType extends string> = <GProperties extends object>() => TypedDefinition<
+  GType,
+  GProperties
+>;
+
+export function typed<GType extends string>($type: GType): PartialTyped<GType> {
+  return <GProperties extends object>(): TypedDefinition<GType, GProperties> => {
+    return {
+      create(properties: GProperties): Typed<GType, GProperties> {
+        return { ...properties, $type };
+      },
+    };
+  };
+}
+
+/*--*/
+
+export type Implementation<
+  GType extends string,
+  GFunction extends (self: Typed<any, any>, ...args: any[]) => any,
+> = GFunction & {
+  readonly $for: GType;
+};
+
+// export function trait<
+//   GTyped extends Typed,
+//   GFunction extends (self: GTyped, ...args: any[]) => any,
+// >($for: GTyped['$type'], fnc: GFunction): Trait<GTyped, GFunction> {
+//   return Object.create(fnc, {
+//     $for,
+//   });
+// }
+
+// export type PartialTrait<GTyped extends Typed> = <
+//   GFunction extends (self: GTyped, ...args: any[]) => any,
+// >(
+//   fnc: GFunction,
+// ) => Trait<GTyped, GFunction>;
+//
+// export function trait<GTyped extends Typed>($for: GTyped['$type']): PartialTrait<GTyped> {
+//   return <GFunction extends (self: GTyped, ...args: any[]) => any>(
+//     fnc: GFunction,
+//   ): Trait<GTyped, GFunction> => {
+//     return Object.create(fnc, {
+//       $for,
+//     });
+//   };
+// }
+
+export type Implementations<GFunction extends (...args: any[]) => any> = GFunction extends (
+  self: infer GSelf,
+  ...args: any[]
+) => any
+  ? GSelf extends Typed
+    ? Record<GSelf['$type'], GFunction>
+    : never
+  : never;
+
+export function overload<GFunction extends (...args: any[]) => any>(
+  implementations: Implementations<GFunction>,
+): GFunction {
+  return ((self: Typed, ...args: any[]): any => {
+    return implementations[self.$type](self, ...args);
+  }) as GFunction;
+}

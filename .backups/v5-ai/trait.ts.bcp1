@@ -1,0 +1,172 @@
+import type { Typed } from './traits/src/typed.ts';
+
+/*---------*/
+
+export interface Translate {
+  <GSelf extends Typed>(self: GSelf, x: number, y?: number, z?: number): GSelf;
+}
+
+/*---*/
+
+const VEC3 = Symbol('VEC3');
+
+export interface Vec3 extends Typed<typeof VEC3> {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
+
+/*---*/
+
+export type TraitDefinitionConstraint = <GSelf extends Typed>(self: GSelf, ...args: any) => any;
+
+// TypeScript has no higher-kinded types: `GFnc<GSelf>` is not expressible, and
+// matching a generic definition instantiates its own type parameter to its
+// constraint, which surfaces as exactly `Typed<any>`. Such positions are
+// re-bound to the implementation's `GSelf`, while concrete `Typed` subtypes
+// declared by the definition are preserved.
+export type RebindTypeParam<TArg, GSelf extends Typed> = [TArg] extends [Typed<any>]
+  ? [Typed<any>] extends [TArg]
+    ? GSelf
+    : TArg
+  : TArg extends readonly unknown[]
+    ? { [GArgKey in keyof TArg]: RebindTypeParam<TArg[GArgKey], GSelf> }
+    : TArg;
+
+export type TraitDefinitionArgs<
+  GTraitDefinition extends TraitDefinitionConstraint,
+  GSelf extends Typed,
+> = GTraitDefinition extends (self: any, ...args: infer GArgs) => any
+  ? { [GArgKey in keyof GArgs]: RebindTypeParam<GArgs[GArgKey], GSelf> }
+  : never;
+
+export type TraitDefinitionReturn<
+  GTraitDefinition extends TraitDefinitionConstraint,
+  GSelf extends Typed,
+> = GTraitDefinition extends (self: any, ...args: any) => infer GReturn
+  ? [GReturn] extends [Typed<any>]
+    ? [Typed<any>] extends [GReturn]
+      ? GSelf
+      : GReturn
+    : GReturn
+  : never;
+
+export type TraitImplementation<
+  GTraitDefinition extends TraitDefinitionConstraint,
+  GSelf extends Typed,
+> = (
+  self: GSelf,
+  ...args: TraitDefinitionArgs<GTraitDefinition, GSelf>
+) => TraitDefinitionReturn<GTraitDefinition, GSelf>;
+
+export type Trait<GTraitDefinition extends TraitDefinitionConstraint> = GTraitDefinition & {
+  implement<GSelf extends Typed>(
+    $type: GSelf['$type'],
+    implementation: TraitImplementation<GTraitDefinition, GSelf>,
+  ): void;
+};
+
+export function trait<
+  GTraitDefinition extends TraitDefinitionConstraint,
+>(): Trait<GTraitDefinition> {
+  const implementations = new Map<symbol, (...args: any) => any>();
+
+  return Object.assign(
+    (self: Typed, ...args: any[]): any => {
+      return implementations.get(self.$type)!(self, ...args);
+    },
+    {
+      implement<GSelf extends Typed>(
+        $type: GSelf['$type'],
+        implementation: (...args: any) => any,
+      ): void {
+        if (implementations.has($type)) {
+          throw new Error(`Trait already implemented for type ${String($type)}.`);
+        }
+        implementations.set($type, implementation);
+      },
+    },
+  ) as Trait<GTraitDefinition>;
+}
+
+/*---*/
+
+const translate = trait<Translate>();
+
+translate.implement(VEC3, (self: Vec3, x: number, y: number = 0, z: number = 0): Vec3 => {
+  return { ...self, x: self.x + x, y: self.y + y, z: self.z + z };
+});
+
+// export function impl<GSelf extends Typed>(token: symbol, fnc: any) {}
+//
+// export function use() {}
+
+// export function trait() {
+//
+// }
+
+// export function match() {}
+
+/*---------*/
+
+// export const translate = aggregatePatternMatchers([
+//   patternMatcher(isOpenscadCode, openscadCode_translate),
+//   patternMatcher(isBomPart, bomPart_translate),
+// ]);
+//
+// translate(cube(1, 2, 3), 10);
+// translate(
+//   bomPart({
+//     name: 'wood',
+//     shopUrl: 'https://www.amazon.fr/gp/product/B000000000',
+//     price: 100,
+//   }),
+//   10,
+// );
+
+/*---------*/
+//
+// export function wood() {
+//   return [
+//     bomPart({
+//       name: 'wood',
+//       shopUrl: 'https://www.amazon.fr/gp/product/B000000000',
+//       price: 100,
+//     }),
+//     translate(applyColor(cube(1, 2, 3), COLOR_WOOD), 0, 1, 2),
+//   ];
+// }
+//
+// export function window(width: number, height: number) {
+//   return [
+//     bomPart({
+//       name: `window_${width}x${height}`,
+//       shopUrl: 'https://www.amazon.fr/gp/product/B000000000',
+//       price: 100,
+//     }),
+//     applyColor(cube(1, 2, 3), COLOR_WOOD),
+//   ];
+// }
+
+/*---------*/
+
+export function mainTrait() {
+  // implement_openscadCode_translate();
+  // implement_bomPart_translate();
+  //
+  // implement_openscadCode_union();
+  // implement_openscadCode_difference();
+  // implement_openscadCode_intersection();
+  // implement_openscadCode_applyColor();
+  //
+  // // const r = translate(vec3(1, 2, 3), 10);
+  // // console.log([vec3(1, 2, 3), vec3(11, 12, 13)].map(translate.curry(10)));
+  // // console.log(r);
+  //
+  // const c = wood();
+  // // console.log(c.map((_) => translate(_, 4, 5, 6)));
+  //
+  // const d = c.map(translate.curry(4, 5, 6));
+  //
+  // console.log();
+}

@@ -1,0 +1,73 @@
+export interface Typed<GType extends symbol = any> {
+  readonly $type: GType;
+}
+
+/*--*/
+
+export type GenericTrait = (self: Typed, ...args: any[]) => any;
+
+export type InferTraitSelf<GTrait extends GenericTrait> = GTrait extends (
+  self: infer GSelf,
+  ...args: any[]
+) => any
+  ? GSelf
+  : never;
+
+export type InferTraitParameters<GTrait extends GenericTrait> = GTrait extends (
+  self: Typed,
+  ...args: infer GParameters
+) => any
+  ? GParameters
+  : never;
+
+export type InferTraitImplementationConstraint<GTrait extends GenericTrait> = GTrait extends (
+  self: Typed,
+  ...args: infer GParameters
+) => infer GReturn
+  ? (self: any, ...args: GParameters) => GReturn
+  : never;
+
+export type CurriedTrait<GTrait extends GenericTrait> = (
+  self: InferTraitSelf<GTrait>,
+) => ReturnType<GTrait>;
+
+/*--*/
+
+export type Trait<GTrait extends GenericTrait> = GTrait & {
+  implement<GImplementation extends InferTraitImplementationConstraint<GTrait>>(
+    $type: InferTraitSelf<GImplementation>['$type'],
+    implementation: GImplementation,
+  ): void;
+
+  curry(...args: InferTraitParameters<GTrait>): CurriedTrait<GTrait>;
+};
+
+export function trait<GTrait extends GenericTrait>(): Trait<GTrait> {
+  const implementations: Map<InferTraitSelf<GTrait>, GTrait> = new Map();
+
+  const fnc = (
+    self: InferTraitSelf<GTrait>,
+    ...args: InferTraitParameters<GTrait>
+  ): ReturnType<GTrait> => {
+    return implementations.get(self.$type)!(self, ...args);
+  };
+
+  const implement = <GImplementation extends InferTraitImplementationConstraint<GTrait>>(
+    $type: InferTraitSelf<GImplementation>['$type'],
+    implementation: GImplementation,
+  ): void => {
+    if (implementations.has($type)) {
+      throw new Error(`Trait already implemented for type ${$type}`);
+    }
+    implementations.set($type, implementation as any);
+  };
+
+  return Object.assign(fnc, {
+    implement,
+    curry(...args: InferTraitParameters<GTrait>): CurriedTrait<GTrait> {
+      return (self: InferTraitSelf<GTrait>): ReturnType<GTrait> => {
+        return fnc(self, ...args);
+      };
+    },
+  }) as unknown as Trait<GTrait>;
+}

@@ -1,0 +1,17 @@
+import { cm } from '../../../../math/units/length/1d/cm.ts';
+import { meter } from '../../../../math/units/length/1d/meter.ts';
+
+export const HOUSE_NORTH_SOUTH_CONCRETE_WALL_LENGTH = meter(12.7);
+export const HOUSE_WALL_HEIGHT = meter(9.1);
+export const HOUSE_WEST_EST_CONCRETE_WALL_LENGTH = meter(11);
+export const HOUSE_CONCRETE_WALL_THICKNESS = cm(22);
+
+// WEST
+export const HOUSE_WEST_CONCRETE_WALL_LENGTH = HOUSE_NORTH_SOUTH_CONCRETE_WALL_LENGTH;
+export const HOUSE_WEST_CONCRETE_WALL_HEIGHT = HOUSE_WALL_HEIGHT;
+export const HOUSE_WEST_CONCRETE_WALL_THICKNESS = HOUSE_CONCRETE_WALL_THICKNESS;
+// OPENING: KITCHEN
+export const HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_WIDTH = meter(1.2);
+export const HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_HEIGHT = meter(1.0);
+export const HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_POSITION_X = meter(2);
+export const HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_POSITION_Z = meter(1.2);
