@@ -21,6 +21,20 @@ import { part_wood_fiber_insulation_steico_flex_240x1220x600 } from './parts/the
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../../..');
 const DIST = join(ROOT, 'dist');
 
+/*---*/
+
+export function house_west_wall_kitchen_opening_shape(): Shape {
+  return Shape.cube(
+    HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_WIDTH,
+    epsilon(HOUSE_WEST_CONCRETE_WALL_THICKNESS),
+    HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_HEIGHT,
+  ).translate(
+    HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_POSITION_X,
+    0,
+    HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_POSITION_Z,
+  );
+}
+
 export function house_west_wall_concrete(): Part {
   return new Part({
     name: 'house_west_wall_concrete',
@@ -29,19 +43,7 @@ export function house_west_wall_concrete(): Part {
       HOUSE_WEST_CONCRETE_WALL_THICKNESS,
       HOUSE_WEST_CONCRETE_WALL_HEIGHT,
       { center: false },
-    ).difference(
-      Shape.cube(
-        HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_WIDTH,
-        epsilon(HOUSE_WEST_CONCRETE_WALL_THICKNESS),
-        HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_HEIGHT,
-      )
-        .translate(
-          HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_POSITION_X,
-          0,
-          HOUSE_WEST_CONCRETE_WALL_KITCHEN_OPENING_POSITION_Z,
-        )
-        .debug(),
-    ),
+    ).difference(house_west_wall_kitchen_opening_shape().debug()),
     material: new Material({
       color: COLOR_CONCRETE,
     }),
@@ -68,6 +70,8 @@ export function house_west_wall(): Part {
     ],
   });
 }
+
+/*---*/
 
 export async function houseProject() {
   console.time('render');
