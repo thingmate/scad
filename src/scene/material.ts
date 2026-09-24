@@ -1,6 +1,5 @@
 import type { Rgba } from '../types/rgba/rgba.ts';
 import { rgbaToOpenscadBlock } from '../types/rgba/to/openscad/rgba-to-openscad-block.ts';
-import { BOM } from './bom.ts';
 
 export interface MaterialOptions {
   readonly color?: Rgba;

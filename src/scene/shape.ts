@@ -3,13 +3,29 @@ import { dedent } from '../misc/string/dedent/dedent.ts';
 import { booleanToOpenscad } from '../types/boolean/to/openscad/boolean-to-openscad.ts';
 import { numberToOpenscad } from '../types/number/to/openscad/number-to-openscad.ts';
 import { vector3ToOpenscad } from '../types/vector-3/to/openscad/vector-3-to-openscad.ts';
+import type { Vector3 } from '../types/vector-3/vector-3.ts';
+import type { Vector2 } from '../types/vector-2/vector-2.ts';
+import { vector2ToOpenscad } from '../types/vector-2/to/openscad/vector-2-to-openscad.ts';
+import { numberListToOpenscad } from '../types/number-list/to/openscad/number-list-to-openscad.ts';
+import type { NumberList } from '../types/number-list/number-list.ts';
 
 export interface CubeOptions {
   readonly center?: boolean;
 }
 
+export interface LinearExtrudeOptions {
+  readonly center?: boolean;
+  readonly twist?: number;
+}
+
+export interface PolygonOptions {
+  readonly paths: readonly NumberList[];
+}
+
 export class Shape {
   /* SHAPES */
+
+  // 3D
 
   /**
    * @inheritDoc https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Primitive_Solids#cube
@@ -36,6 +52,63 @@ export class Shape {
 
   static cylinder(height: number, radius: number, subDivisions?: number): Shape {
     return this.cone(height, radius, radius, subDivisions);
+  }
+
+  /**
+   * @inheritDoc https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Primitive_Solids#polyhedron
+   */
+  static polyhedron(points: readonly Vector3[], faces: readonly (readonly number[])[]): Shape {
+    return new Shape(
+      dedent`
+        polyhedron(
+          points = [
+            ${points.map((point: Vector3) => vector3ToOpenscad(point)).join(',\n')}
+          ],
+          faces = [
+            ${faces.map((face: readonly number[]) => `[${face.map((index: number) => numberToOpenscad(index)).join(', ')}]`).join(',\n')}
+          ],
+        );
+      `,
+    );
+  }
+
+  /**
+   * @experimental
+   */
+  static linearExtrude(
+    shape: Shape,
+    height: number,
+    { center = true, twist = 0 }: LinearExtrudeOptions = {},
+  ): Shape {
+    return new Shape(
+      dedent`
+        linear_extrude(height = ${numberToOpenscad(height)}, center = ${booleanToOpenscad(center)}, twist = ${numberToOpenscad(twist)}) {
+          ${shape.code}
+        }
+      `,
+    );
+  }
+
+  // 2D
+
+  /**
+   * @inheritDoc https://en.wikibooks.org/wiki/OpenSCAD_User_Manual/Primitive_Solids#polyhedron
+   */
+  static polygon(points: readonly Vector2[], { paths }: PolygonOptions = {}): Shape {
+    return new Shape(
+      dedent`
+        polygon(
+          ${this.#openScadArguments({
+            points: dedent`
+              [
+                ${points.map(vector2ToOpenscad).join(',\n')}
+              ]
+            `,
+            paths: paths === undefined ? undefined : paths.map(numberListToOpenscad).join(',\n'),
+          })}
+        );
+      `,
+    );
   }
 
   /* TRANSFORM */
@@ -81,8 +154,12 @@ export class Shape {
   /* ASSEMBLE */
 
   static union(...shapes: Shape[]): Shape {
-    if (shapes.length < 2) {
-      throw new Error('At least 2 shapes are required');
+    if (shapes.length === 0) {
+      throw new Error('At least 1 shape is required');
+    }
+
+    if (shapes.length === 1) {
+      return shapes[0];
     }
 
     return new Shape(
@@ -132,6 +209,22 @@ export class Shape {
         }
       `,
     );
+  }
+
+  /* MISC */
+
+  static #openScadArguments(args: Record<string, string | undefined>): string {
+    const entries = Object.entries(args);
+    if (entries.length === 0) {
+      return '';
+    } else {
+      return dedent`
+        ${entries
+          .filter(([, value]) => value !== undefined)
+          .map(([key, value]) => `${key} = ${value}`)
+          .join(',\n')}
+      `;
+    }
   }
 
   readonly code: string;
